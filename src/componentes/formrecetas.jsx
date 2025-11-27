@@ -1,65 +1,34 @@
-import { useState, useRef } from "react";
-import { db, storage } from "../lib/firebase";
+import { useState } from "react";
+import { db } from "../lib/firebase";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function FormReceta() {
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [detalle, setDetalle] = useState("");
-  const [imagen, setImagen] = useState(null);
-  const [nombreImagen, setNombreImagen] = useState(
-    "Ningún archivo seleccionado"
-  );
   const [subiendo, setSubiendo] = useState(false);
-
-  const inputFileRef = useRef(null);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImagen(file);
-      setNombreImagen(file.name);
-    } else {
-      setNombreImagen("Ningún archivo seleccionado");
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!imagen) {
-      alert("Por favor, selecciona una imagen.");
-      return;
-    }
-
     setSubiendo(true);
 
     try {
-      const storageRef = ref(storage, `recetas/${Date.now()}_${imagen.name}`);
-      await uploadBytes(storageRef, imagen);
-      const imageUrl = await getDownloadURL(storageRef);
-
       await addDoc(collection(db, "recetas"), {
         titulo,
         descripcion,
         detalle,
-        imagen: imageUrl,
         fechaCreacion: Timestamp.now(),
+        imagen: null, // Opcional, lo dejamos como null
       });
 
-      // limpiar formulario
       setTitulo("");
       setDescripcion("");
       setDetalle("");
-      setImagen(null);
-      setNombreImagen("Ningún archivo seleccionado");
-      if (inputFileRef.current) inputFileRef.current.value = "";
 
       alert("¡Receta agregada con éxito!");
     } catch (error) {
       console.error("Error al agregar la receta:", error);
-      alert("Hubo un error al subir la receta.");
+      alert("Hubo un error al guardar la receta.");
     } finally {
       setSubiendo(false);
     }
@@ -111,39 +80,12 @@ export default function FormReceta() {
           ></textarea>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-[#A53860]">
-            Imagen de la Receta
-          </label>
-
-          <div className="mt-1 flex items-center">
-            <input
-              type="file"
-              ref={inputFileRef}
-              onChange={handleFileChange}
-              accept="image/*"
-              required
-              className="hidden"
-            />
-
-            <button
-              type="button"
-              onClick={() => inputFileRef.current.click()}
-              className="cursor-pointer bg-[#FFA5AB] text-[#450920] font-semibold py-2 px-4 rounded-xl hover:bg-[#F9DBBD] transition"
-            >
-              Elegir imagen
-            </button>
-
-            <span className="ml-4 text-gray-600 text-sm">{nombreImagen}</span>
-          </div>
-        </div>
-
         <button
           type="submit"
           disabled={subiendo}
           className="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-[#A53860] hover:bg-[#DA627D] disabled:opacity-50 transition"
         >
-          {subiendo ? "Subiendo receta..." : "Agregar Receta"}
+          {subiendo ? "Guardando..." : "Agregar Receta"}
         </button>
       </form>
     </div>
